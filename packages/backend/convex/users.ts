@@ -1,5 +1,37 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+
+export const requireAuth = async (ctx: any) => {
+  const identity = await ctx.auth.getUserIdentity();
+  
+  if (!identity) {
+    throw new ConvexError("Authentication required");
+  }
+
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_user_id")
+    .filter((q: any) => q.eq(q.field("userId"), identity.subject))
+    .first();
+
+  if (!user) {
+    throw new ConvexError("User not found");
+  }
+
+  return { user, identity };
+};
+
+export const requireAdmin = async (ctx: any) => {
+  const { user } = await requireAuth(ctx);
+
+  if (user.role !== "ADMIN") {
+    throw new ConvexError("Admin access required");
+  }
+  
+  return { user };
+};
+
+// USER actions
 
 // Function to sync a new user to our database
 export const syncUser = mutation({
@@ -78,11 +110,43 @@ export const getCurrentUser = query({
     }
 });
 
+
+export const updateUserProfile = mutation({
+  args: {
+    name: v.optional(v.string()),
+    username: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireAuth(ctx);
+    
+    // Check if username is taken (if provided)
+    if (args.username) {
+      const existingUsername = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("username"), args.username))
+        .first();
+        
+      if (existingUsername && existingUsername._id !== user._id) {
+        throw new ConvexError("Username already taken");
+      }
+    }
+
+    await ctx.db.patch(user._id, {
+      ...(args.name && { name: args.name }),
+      ...(args.username && { username: args.username }),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// ADMIN actions
+
 export const getMany = query({
     args: {},
     handler: async (ctx) => {
-        const users = await ctx.db.query("users").collect();
+        // await requireAdmin(ctx);
 
+        const users = await ctx.db.query("users").collect();
         return users;
     }
 });
