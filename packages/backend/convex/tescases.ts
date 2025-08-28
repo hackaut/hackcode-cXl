@@ -113,12 +113,7 @@ export const updateTestCase = mutation({
         throw new ConvexError("Test case not found");
         }
 
-        const problem = await ctx.db
-            .query("problems")
-            .withIndex("by_problem_id")
-            .filter(q => q.eq(q.field("problemId"), testcase.problemId))
-            .first();
-
+        const problem = await ctx.db.get(testcase.problemId);
         if (!problem) {
         throw new ConvexError("Associated problem not found");
         }
@@ -159,11 +154,7 @@ export const deleteTestCase = mutation({
         throw new ConvexError("Test case not found");
         }
 
-        const problem = await ctx.db
-            .query("problems")
-            .withIndex("by_problem_id")
-            .filter(q => q.eq(q.field("problemId"), testcase.problemId))
-           .first();
+        const problem = await ctx.db.get(testcase.problemId);
         if (!problem) {
             throw new ConvexError("Associated problem not found");
         }
