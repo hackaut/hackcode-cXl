@@ -17,7 +17,7 @@ const canModifyProblem = async (ctx: any, problemId: string) => {
     throw new ConvexError("Problem not found");
   }
 
-  if (problem.creatorId !== user._id || user.role !== "ADMIN") {
+  if (problem.creatorId !== user._id && user.role !== "ADMIN") {
     throw new ConvexError("Permission denied");
   }
 
@@ -124,7 +124,7 @@ export const updateTestCase = mutation({
         }
 
         const { user } = await requireAuth(ctx);
-        if (problem.creatorId !== user._id || user.role !== "ADMIN") {
+        if (problem.creatorId !== user._id && user.role !== "ADMIN") {
         throw new ConvexError("Permission denied");
         }
 
@@ -169,7 +169,7 @@ export const deleteTestCase = mutation({
         }
 
         const { user } = await requireAuth(ctx);
-        if (problem.creatorId !== user._id || user.role !== "ADMIN") {
+        if (problem.creatorId !== user._id && user.role !== "ADMIN") {
             throw new ConvexError("Permission denied");
         }
 

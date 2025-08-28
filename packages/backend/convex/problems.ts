@@ -39,7 +39,6 @@ export const createProblem = mutation({
 
             await ctx.db.patch(user._id, {
                 createdProblems: [...user.createdProblems, problemDocId],
-                updatedAt: Date.now(),
             });
 
             return { message: "Problem added successfully!", problemId }
@@ -144,7 +143,7 @@ export const getProblemForEdit = mutation({
             throw new ConvexError("Problem not found");
           }
 
-          if (problem.creatorId !== user._id || user.role !== "ADMIN") { // Either the one who created or an admin can edit a problem
+          if (problem.creatorId !== user._id && user.role !== "ADMIN") { // Either the one who created or an admin can edit a problem
             throw new ConvexError("Permission denied");
           }
 
@@ -185,7 +184,7 @@ export const deleteProblem = mutation({
         throw new ConvexError("Problem not found");
       }
 
-      if (problem.creatorId !== user._id || user.role !== "ADMIN") { /// Admin or creator is permitted to do this action
+      if (problem.creatorId !== user._id && user.role !== "ADMIN") { /// Admin or creator is permitted to do this action
         throw new ConvexError("Permission denied");
       }
 

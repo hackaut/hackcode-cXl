@@ -57,6 +57,7 @@ export const syncUser = mutation({
         username: username,
         isVerified: false,
         role: "USER",
+
         createdContests: [],
         createdProblems: [],
         participatedContests: [],
