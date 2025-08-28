@@ -1,0 +1,14 @@
+{
+  "name": "@workspace/judge0_backend",
+  "type": "module",
+  "scripts": {
+  },
+  "exports": {},
+  "devDependencies": {
+    "@types/node": "^20.19.9",
+    "typescript": "5.8.3"
+  },
+  "dependencies": {
+
+  }
+}
