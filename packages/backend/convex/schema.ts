@@ -7,12 +7,12 @@ export default defineSchema({
         userId: v.string(),
         username: v.string(),
         email: v.string(),
-        password: v.string(),
-        avatar: v.optional(v.string()),
+        // password: v.string(), // Auth via clerk so no need for storing in-app password
+        // avatar: v.optional(v.string()), // Via clerk
         name: v.optional(v.string()),
         isVerified: v.boolean(),
         role: v.union(v.literal("USER"), v.literal("ADMIN")),
-        updatedAt: v.number(), // _createdAt exists by-default
+        // updatedAt: v.number(), // _createdAt exists by-default // no need for this field too
         createdProblems: v.array(v.id("problems")),
         solvedProblems: v.array(v.id("problems")),
         createdContests: v.array(v.id("contests")),

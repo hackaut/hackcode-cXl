@@ -13,6 +13,8 @@
     "typescript": "5.8.3"
   },
   "dependencies": {
-    "convex": "^1.26.1"
+    "@clerk/nextjs": "^6.31.6",
+    "convex": "^1.26.1",
+    "svix": "^1.75.0"
   }
 }
