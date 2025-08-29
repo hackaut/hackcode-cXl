@@ -43,7 +43,7 @@ export default defineSchema({
 
     // suggestions from anthropic.claude ----
     problemStats: defineTable({
-        problemId: v.id("problems"),
+        problemId: v.string(),
         totalSubmissions: v.number(),
         acceptedSubmissions: v.number(),
         acceptanceRate: v.number(),
@@ -89,8 +89,8 @@ export default defineSchema({
 
     submissions: defineTable({
         submissionId: v.string(),
-        userId: v.id("users"),
-        problemId: v.id("problems"),
+        userId: v.string(),
+        problemId: v.string(),
         contestId: v.optional(v.id("contests")), // user can solve normal problems also without being in a contest
         user_code: v.string(),
         language: v.string(),
@@ -121,10 +121,10 @@ export default defineSchema({
     // suggestions from anthropic.claude
     contestSubmissions: defineTable({
         contestSubmissionId: v.string(),
-        contestId: v.id("contests"),
-        userId: v.id("users"),
-        problemId: v.id("problems"),
-        submissionId: v.id("submissions"),
+        contestId: v.string(),
+        userId: v.string(),
+        problemId: v.string(),
+        submissionId: v.string(),
         points: v.number(),
         penalty: v.number(), // for ACM-style contests
         submissionTime: v.number(),
@@ -134,8 +134,8 @@ export default defineSchema({
     judge0Executions: defineTable({
         judge0ExecutionId: v.string(),
         token: v.string(),
-        submissionId: v.id("submissions"),
-        testcaseId: v.id("testcases"),
+        submissionId: v.string(),
+        testcaseId: v.string(),
         stdout: v.optional(v.string()),
         stdin: v.optional(v.string()),
         status: v.union(v.literal("PENDING"), v.literal("RUNNING"), v.literal("DONE")),
