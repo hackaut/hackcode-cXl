@@ -49,7 +49,7 @@ export const createProblem = mutation({
     }
 });
 
-// Function to list all problems
+// Function to list all problems with filters
 export const listProblems = query({
   args: {
     difficulty: v.optional(v.union(v.literal("EASY"), v.literal("MEDIUM"), v.literal("HARD"))),

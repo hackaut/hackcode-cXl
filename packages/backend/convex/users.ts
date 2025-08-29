@@ -111,7 +111,7 @@ export const getCurrentUser = query({
     }
 });
 
-
+// Function to update user profile
 export const updateUserProfile = mutation({
   args: {
     name: v.optional(v.string()),
