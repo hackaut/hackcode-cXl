@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAuth } from "./users";
 
-// Function to create a new problem
+// Function to create a new problem // Tested
 export const createProblem = mutation({
     args: {
         title: v.string(),
@@ -17,6 +17,7 @@ export const createProblem = mutation({
     handler: async (ctx, args) => {
         try {
             const { user } = await requireAuth(ctx);
+            console.log("User: ", user)
 
             const problemId = `PROB_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -49,7 +50,7 @@ export const createProblem = mutation({
     }
 });
 
-// Function to list all problems with filters
+// Function to list all problems with filters // Tested
 export const listProblems = query({
   args: {
     difficulty: v.optional(v.union(v.literal("EASY"), v.literal("MEDIUM"), v.literal("HARD"))),
@@ -91,7 +92,7 @@ export const listProblems = query({
   },
 });
 
-// Function to get single problem with full details
+// Function to get single problem with full details // Tested
 export const getProblem = query({
   args: { problemId: v.string() },
   handler: async (ctx, args) => {
@@ -124,10 +125,20 @@ export const getProblem = query({
   },
 });
 
-// Function to get problem for creator/admin (with all testCases)
+// Function to get problem for creator/admin (with all testCases) // Tested
 export const getProblemForEdit = mutation({
     args: {
         problemId: v.string(),
+        title: v.optional(v.string()),
+        description: v.optional(v.string()),
+        timeLimit: v.optional(v.number()), // in seconds
+        memoryLimit: v.optional(v.number()), // in MB
+        difficulty: v.optional(
+          v.union(v.literal("EASY"), v.literal("MEDIUM"), v.literal("HARD"))
+        ),
+        tags: v.optional(v.array(v.string())),
+        sampleInput: v.optional(v.string()),
+        sampleOutput: v.optional(v.string())
     },
     handler: async (ctx, args) => {
         try {
@@ -167,7 +178,7 @@ export const getProblemForEdit = mutation({
     }
 });
 
-// Function to delete problem
+// Function to delete problem // Tested
 export const deleteProblem = mutation({
   args: { problemId: v.string() },
   handler: async (ctx, args) => {
@@ -214,7 +225,7 @@ export const deleteProblem = mutation({
   },
 });
 
-// Function to get all the problems created by the user
+// Function to get all the problems created by the user // Fixed
 export const getUserProblems = query({
   handler: async (ctx) => {
     const  { user } = await requireAuth(ctx);
@@ -226,14 +237,14 @@ export const getUserProblems = query({
     const problems = await ctx.db
       .query("problems")
       .withIndex("by_creator_id")
-      .filter(q => q.eq(q.field("creatorId"), user.userId))
+      .filter(q => q.eq(q.field("creatorId"), user._id)) // This requied fix... [user.userId -> user._id]
       .collect();
 
     return { problems };
   }
 });
 
-// Function to get particular problem stat
+// Function to get particular problem stat // Remaigning
 export const getProblemStats = query({
   args: { 
     problemId: v.string()

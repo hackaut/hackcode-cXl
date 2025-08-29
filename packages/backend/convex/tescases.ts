@@ -4,14 +4,14 @@ import { mutation, query } from "./_generated/server";
 
 // Workflow: First let a user create a problem, then he/she gets back problemId, use problemId field to disable `Add TestCase` Button.
 
-const canModifyProblem = async (ctx: any, problemId: string) => {
+const canModifyProblem = async (ctx: any, problemId: string) => { // Fixed...
   const { user } = await requireAuth(ctx);
   
-  const problem = await ctx.db
-    .query("problems")
-    .withIndex("by_problem_id")
-    .filter((q: any) => q.eq(q.field("problemId"), problemId))
-    .first();
+  const problem = await ctx.db.get(problemId); // This required fix...
+    // .query("problems")
+    // .withIndex("by_problem_id")
+    // .filter((q: any) => q.eq(q.field("problemId"), problemId))
+    // .first();
 
   if (!problem) {
     throw new ConvexError("Problem not found");
@@ -24,7 +24,7 @@ const canModifyProblem = async (ctx: any, problemId: string) => {
   return { user, problem };
 };
 
-// Function to create test case
+// Function to create test case // Tested
 export const createTestCase = mutation({
   args: {
     problemId: v.string(),
@@ -54,7 +54,7 @@ export const createTestCase = mutation({
   },
 });
 
-// Function to get test cases for a problem (admin/creator view)
+// Function to get test cases for a problem (admin/creator view) // Fixed
 export const getProblemTestCases = query({
   args: { 
     problemId: v.string(),
@@ -64,7 +64,7 @@ export const getProblemTestCases = query({
     const problem = await ctx.db
       .query("problems")
       .withIndex("by_problem_id")
-      .filter((q) => q.eq(q.field("problemId"), args.problemId))
+      .filter((q) => q.eq(q.field("_id"), args.problemId)) // Fixed here...
       .first();
 
     if (!problem) {
@@ -93,7 +93,7 @@ export const getProblemTestCases = query({
   },
 });
 
-// Function to update test case
+// Function to update test case // Tested
 export const updateTestCase = mutation({
   args: {
     testcaseId: v.string(),
@@ -140,7 +140,7 @@ export const updateTestCase = mutation({
   },
 });
 
-// Function to delete test case
+// Function to delete test case // Tested
 export const deleteTestCase = mutation({
   args: { testcaseId: v.string() },
   handler: async (ctx, args) => {
@@ -180,7 +180,7 @@ export const deleteTestCase = mutation({
   },
 });
 
-// Function to create multiple test cases at once
+// Function to create multiple test cases at once // Tested
 export const bulkCreateTestCases = mutation({
   args: {
     problemId: v.string(),
