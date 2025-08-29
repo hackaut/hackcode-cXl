@@ -60,8 +60,8 @@ export default defineSchema({
         .index("by_test_case_id", ["testcaseId"])
         .index("by_problem_id", ["problemId"]),
 
-    contestProblems: defineTable({
-        contestProblemId: v.string(),
+    contestProblems: defineTable({ 
+        contestProblemId: v.string(), // ""
         contestId: v.id("contests"),
         problemId: v.id("problems"),
         order: v.number(),
