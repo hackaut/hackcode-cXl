@@ -1,8 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAuth } from "./users";
+import { Id } from "./_generated/dataModel";
 
-// Function to create a new contest
+// Function to create a new contest // Tested
 export const createContest = mutation({
     args: {
         name: v.string(),
@@ -37,13 +38,13 @@ export const createContest = mutation({
             contestId,
             name: args.name.trim(),
             description: args.description.trim(),
-            creatorId: user.userId,
+            creatorId: user._id, // Changed here to keep consistency
             startTime: args.startTime,
             endTime: args.endTime,
             isPublic: args.isPublic,
             maxSize: args.maxSize,
             problems: [],
-            users: (args.addSelf) ? [user.userId] : [], // Think about this wisely...
+            users: (args.addSelf) ? [user._id] : [], // Think about this wisely...
             updatedAt: Date.now(),
         });
 
@@ -60,7 +61,7 @@ export const createContest = mutation({
     }
 });
 
-// Function to get all contests with filters
+// Function to get all contests with filters // Tested
 export const listContests = query({
     args: {
         filter: v.optional(v.union(
@@ -183,7 +184,7 @@ export const listContests = query({
     }
 });
 
-// Function to get a specific problem details
+// Function to get a specific problem details // Tested
 export const getContestDetails = query({
     args: {
         contestId: v.string(),
@@ -253,7 +254,7 @@ export const getContestDetails = query({
     },
 });
 
-// Function to update a contest
+// Function to update a contest // Fixed
 export const updateContest = mutation({
     args: {
         contestId: v.string(),
@@ -279,7 +280,7 @@ export const updateContest = mutation({
             throw new ConvexError("Contest not found!");
         }
 
-        const isCreator = contest.creatorId === user.userId;
+        const isCreator = contest.creatorId === user._id; // Fixed this [user.userId -> user._id]
         const isAdmin = user.role === "ADMIN";
         
         if (!isCreator && !isAdmin) {
@@ -332,4 +333,164 @@ export const updateContest = mutation({
     }
 });
 
-// Function to delete a contest
+// Function to delete a contest // Tested
+export const deleteContest = mutation({
+  args: { contestId: v.string() }, // contest_xyz1234
+  handler: async (ctx, args) => {
+    const { user } = await requireAuth(ctx);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const contest = await ctx.db
+      .query("contests")
+      .withIndex("by_contest_id", (q) => q.eq("contestId", args.contestId))
+      .unique();
+
+    if (!contest) {
+      throw new Error("Contest not found");
+    }
+
+    const isCreator = contest.creatorId === user._id;
+    const isAdmin = user.role === "ADMIN";
+    
+    if (!isCreator && !isAdmin) {
+      throw new Error("Only contest creator or admin can delete contest");
+    }
+
+    // Check if contest has submissions (prevent deletion if it has submissions)
+    const hasSubmissions = await ctx.db
+      .query("contestSubmissions")
+      .withIndex("by_contest_id", (q) => q.eq("contestId", contest._id))
+      .first();
+
+    if (hasSubmissions) {
+      throw new Error("Cannot delete contest with existing submissions");
+    }
+
+    // Delete contest problems
+    const contestProblems = await ctx.db
+      .query("contestProblems")
+      .withIndex("by_contest_id", (q) => q.eq("contestId", contest._id))
+      .collect();
+
+    for (const cp of contestProblems) {
+      await ctx.db.delete(cp._id);
+    }
+
+    // Remove contest from users' arrays
+    const participants = await Promise.all(
+      contest.users.map(userDocId => ctx.db.get(userDocId))
+    );
+
+    for (const participant of participants) {
+      if (participant) {
+        await ctx.db.patch(participant._id, {
+          createdContests: participant.createdContests.filter(id => id !== contest._id),
+          participatedContests: participant.participatedContests.filter(id => id !== contest._id),
+        });
+      }
+    }
+
+    // Delete the contest
+    await ctx.db.delete(contest._id);
+
+    return { message: "Contest deleted successfully", success: true };
+  },
+});
+
+// Function to join a contest // Tested -> Think about how to handle private contests
+export const joinContest = mutation({
+  args: { contestId: v.string() },
+  handler: async (ctx, args) => {
+    const { user } = await requireAuth(ctx);
+    if (!user) {
+      throw new ConvexError("User not found");
+    }
+
+    const contest = await ctx.db
+      .query("contests")
+      .withIndex("by_contest_id", (q) => q.eq("contestId", args.contestId))
+      .unique();
+
+    if (!contest) {
+      throw new ConvexError("Contest not found");
+    }
+
+    // Check if contest is public or user is invited
+    if (!contest.isPublic) {
+      throw new ConvexError("Contest is private");
+    }
+
+    // Check if already joined
+    if (contest.users.includes(user._id)) {
+      throw new ConvexError("Already joined this contest");
+    }
+
+    // Check capacity
+    if (contest.users.length >= contest.maxSize) {
+      throw new ConvexError("Contest is full");
+    }
+
+    // Check if contest has ended
+    if (Date.now() > contest.endTime) {
+      throw new ConvexError("Contest has ended");
+    }
+
+    // Join contest
+    await ctx.db.patch(contest._id, {
+      users: [...contest.users, user._id],
+      updatedAt: Date.now(),
+    });
+
+    // Update user's participated contests
+    await ctx.db.patch(user._id, {
+      participatedContests: [...user.participatedContests, contest._id],
+    });
+
+    return { message: `Joined contest: ${contest.name} successfully`, success: true };
+  },
+});
+
+// Function to leave a contest // Tested
+export const leaveContest = mutation({
+  args: { contestId: v.string() },
+  handler: async (ctx, args) => {
+    const { user } = await requireAuth(ctx);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const contest = await ctx.db
+      .query("contests")
+      .withIndex("by_contest_id", (q) => q.eq("contestId", args.contestId))
+      .unique();
+
+    if (!contest) {
+      throw new Error("Contest not found");
+    }
+
+    // Check if user is in contest
+    if (!contest.users.includes(user._id)) {
+      throw new Error("Not participating in this contest");
+    }
+
+    // Check if contest has started
+    if (Date.now() >= contest.startTime) {
+      throw new Error("Cannot leave contest after it has started");
+    }
+
+    // Remove user from contest
+    await ctx.db.patch(contest._id, {
+      users: contest.users.filter(id => id !== user._id),
+      updatedAt: Date.now(),
+    });
+
+    // Update user's participated contests
+    await ctx.db.patch(user._id, {
+      participatedContests: user.participatedContests.filter((id: Id<"contests">) => id !== contest._id),
+    });
+
+    return { message: "Successfully left the contest", success: true };
+  },
+});
